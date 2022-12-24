@@ -224,6 +224,7 @@ import net.citizensnpcs.trait.versioned.PolarBearTrait;
 import net.citizensnpcs.trait.versioned.PufferFishTrait;
 import net.citizensnpcs.trait.versioned.ShulkerTrait;
 import net.citizensnpcs.trait.versioned.SnowmanTrait;
+import net.citizensnpcs.trait.versioned.SpellcasterTrait;
 import net.citizensnpcs.trait.versioned.TropicalFishTrait;
 import net.citizensnpcs.trait.versioned.VillagerTrait;
 import net.citizensnpcs.util.EmptyChannel;
@@ -249,6 +250,7 @@ import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ChunkMap.TrackedEntity;
@@ -318,6 +320,11 @@ import net.minecraft.world.scores.PlayerTeam;
 public class NMSImpl implements NMSBridge {
     public NMSImpl() {
         loadEntityTypes();
+    }
+
+    @Override
+    public void activate(org.bukkit.entity.Entity entity) {
+        getHandle(entity).activatedTick = MinecraftServer.currentTick;
     }
 
     @SuppressWarnings("resource")
@@ -814,6 +821,7 @@ public class NMSImpl implements NMSBridge {
         registerTraitWithCommand(manager, PufferFishTrait.class);
         registerTraitWithCommand(manager, ShulkerTrait.class);
         registerTraitWithCommand(manager, SnowmanTrait.class);
+        registerTraitWithCommand(manager, SpellcasterTrait.class);
         registerTraitWithCommand(manager, TropicalFishTrait.class);
         registerTraitWithCommand(manager, VillagerTrait.class);
     }
@@ -1240,7 +1248,7 @@ public class NMSImpl implements NMSBridge {
     }
 
     @Override
-    public void setCustomName(org.bukkit.entity.Entity entity, Object component) {
+    public void setCustomName(org.bukkit.entity.Entity entity, Object component, String string) {
         getHandle(entity).setCustomName((Component) component);
     }
 
@@ -1430,7 +1438,7 @@ public class NMSImpl implements NMSBridge {
         if (ENTITY_REGISTRY == null)
             return;
         try {
-            ENTITY_REGISTRY_SETTER.invoke(null, ENTITY_REGISTRY.getWrapped());
+            ENTITY_REGISTRY_SETTER.invoke(null, ENTITY_REGISTRY.get());
         } catch (Throwable e) {
         }
     }

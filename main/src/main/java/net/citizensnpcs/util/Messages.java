@@ -1,6 +1,7 @@
 package net.citizensnpcs.util;
 
 public class Messages {
+    public static final String ACTIVATION_RANGE_SET = "citizens.commands.npc.activationrange.set";
     public static final String ADDED_SCOREBOARD_TAGS = "citizens.commands.npc.scoreboard.added-tags";
     public static final String ADDED_TO_PLAYERLIST = "citizens.commands.npc.playerlist.added";
     public static final String AGE_LOCKED = "citizens.commands.npc.age.locked";
@@ -337,6 +338,7 @@ public class Messages {
     public static final String SPEED_MODIFIER_ABOVE_LIMIT = "citizens.commands.npc.speed.modifier-above-limit";
     public static final String SPEED_MODIFIER_SET = "citizens.commands.npc.speed.set";
     public static final String SPEED_TRIGGER_PROMPT = "citizens.editors.waypoints.triggers.speed.prompt";
+    public static final String SPELL_SET = "citizens.commands.npc.spellcaster.spell-set";
     public static final String SWIMMING_SET = "citizens.commands.npc.swim.set";
     public static final String SWIMMING_UNSET = "citizens.commands.npc.swim.unset";
     public static final String TARGETABLE_SET = "citizens.commands.npc.targetable.set";
@@ -367,6 +369,7 @@ public class Messages {
     public static final String TOGGLED_USING_HELD_ITEM = "citizens.commands.npc.useitem.held-item-toggled";
     public static final String TOGGLED_USING_OFFHAND_ITEM = "citizens.commands.npc.useitem.offhand-item-toggled";
     public static final String TPTO_SUCCESS = "citizens.commands.npc.tpto.success";
+    public static final String TRACKING_RANGE_SET = "citizens.commands.npc.trackingdistance.set";
     public static final String TRAIT_LOAD_FAILED = "citizens.notifications.trait-load-failed";
     public static final String TRAIT_NOT_CONFIGURABLE = "citizens.commands.traitc.not-configurable";
     public static final String TRAIT_NOT_FOUND = "citizens.commands.traitc.missing";

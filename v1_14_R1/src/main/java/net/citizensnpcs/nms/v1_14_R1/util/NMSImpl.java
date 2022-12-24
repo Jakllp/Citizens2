@@ -212,6 +212,7 @@ import net.citizensnpcs.trait.versioned.PolarBearTrait;
 import net.citizensnpcs.trait.versioned.PufferFishTrait;
 import net.citizensnpcs.trait.versioned.ShulkerTrait;
 import net.citizensnpcs.trait.versioned.SnowmanTrait;
+import net.citizensnpcs.trait.versioned.SpellcasterTrait;
 import net.citizensnpcs.trait.versioned.TropicalFishTrait;
 import net.citizensnpcs.trait.versioned.VillagerTrait;
 import net.citizensnpcs.util.EmptyChannel;
@@ -782,6 +783,7 @@ public class NMSImpl implements NMSBridge {
         registerTraitWithCommand(manager, PhantomTrait.class);
         registerTraitWithCommand(manager, PolarBearTrait.class);
         registerTraitWithCommand(manager, PufferFishTrait.class);
+        registerTraitWithCommand(manager, SpellcasterTrait.class);
         registerTraitWithCommand(manager, ShulkerTrait.class);
         registerTraitWithCommand(manager, SnowmanTrait.class);
         registerTraitWithCommand(manager, TropicalFishTrait.class);
@@ -1202,7 +1204,7 @@ public class NMSImpl implements NMSBridge {
     }
 
     @Override
-    public void setCustomName(org.bukkit.entity.Entity entity, Object component) {
+    public void setCustomName(org.bukkit.entity.Entity entity, Object component, String string) {
         getHandle(entity).setCustomName((IChatBaseComponent) component);
     }
 
@@ -1366,7 +1368,7 @@ public class NMSImpl implements NMSBridge {
             return;
         MethodHandle field = NMS.getFinalSetter(IRegistry.class, "ENTITY_TYPE");
         try {
-            field.invoke(null, ENTITY_REGISTRY.getWrapped());
+            field.invoke(null, ENTITY_REGISTRY.get());
         } catch (Throwable e) {
         }
     }

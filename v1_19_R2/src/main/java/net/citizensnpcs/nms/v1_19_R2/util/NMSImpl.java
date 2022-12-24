@@ -65,6 +65,7 @@ import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
 import com.mojang.authlib.yggdrasil.response.MinecraftProfilePropertiesResponse;
 import com.mojang.util.UUIDTypeAdapter;
+import com.viaversion.viaversion.api.Via;
 
 import net.citizensnpcs.Settings.Setting;
 import net.citizensnpcs.api.CitizensAPI;
@@ -238,6 +239,7 @@ import net.citizensnpcs.trait.versioned.PolarBearTrait;
 import net.citizensnpcs.trait.versioned.PufferFishTrait;
 import net.citizensnpcs.trait.versioned.ShulkerTrait;
 import net.citizensnpcs.trait.versioned.SnowmanTrait;
+import net.citizensnpcs.trait.versioned.SpellcasterTrait;
 import net.citizensnpcs.trait.versioned.TropicalFishTrait;
 import net.citizensnpcs.trait.versioned.VillagerTrait;
 import net.citizensnpcs.util.EmptyChannel;
@@ -266,6 +268,7 @@ import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
 import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ChunkMap.TrackedEntity;
@@ -340,6 +343,11 @@ import net.minecraft.world.scores.PlayerTeam;
 public class NMSImpl implements NMSBridge {
     public NMSImpl() {
         loadEntityTypes();
+    }
+
+    @Override
+    public void activate(org.bukkit.entity.Entity entity) {
+        getHandle(entity).activatedTick = MinecraftServer.currentTick;
     }
 
     @SuppressWarnings("resource")
@@ -840,10 +848,20 @@ public class NMSImpl implements NMSBridge {
         registerTraitWithCommand(manager, PhantomTrait.class);
         registerTraitWithCommand(manager, PolarBearTrait.class);
         registerTraitWithCommand(manager, PufferFishTrait.class);
+        registerTraitWithCommand(manager, SpellcasterTrait.class);
         registerTraitWithCommand(manager, ShulkerTrait.class);
         registerTraitWithCommand(manager, SnowmanTrait.class);
         registerTraitWithCommand(manager, TropicalFishTrait.class);
         registerTraitWithCommand(manager, VillagerTrait.class);
+
+        if (VIA_ENABLED == null) {
+            try {
+                Via.getAPI();
+                VIA_ENABLED = true;
+            } catch (Throwable t) {
+                VIA_ENABLED = false;
+            }
+        }
     }
 
     private void loadEntityTypes() {
@@ -1234,7 +1252,12 @@ public class NMSImpl implements NMSBridge {
         }
 
         NMSImpl.sendPacket(recipient, packet);
-        return false;
+        if (VIA_ENABLED == false)
+            return false;
+
+        @SuppressWarnings("unchecked")
+        int version = Via.getAPI().getPlayerVersion(recipient);
+        return version < 761;
     }
 
     @Override
@@ -1258,9 +1281,8 @@ public class NMSImpl implements NMSBridge {
         Preconditions.checkNotNull(recipient);
         Preconditions.checkNotNull(listPlayer);
 
-        ServerPlayer entity = ((CraftPlayer) listPlayer).getHandle();
-
-        NMSImpl.sendPacket(recipient, new ClientboundPlayerInfoRemovePacket(Arrays.asList(entity.getUUID())));
+        NMSImpl.sendPacket(recipient,
+                new ClientboundPlayerInfoRemovePacket(Arrays.asList(getHandle(listPlayer).getUUID())));
     }
 
     @Override
@@ -1321,7 +1343,7 @@ public class NMSImpl implements NMSBridge {
     }
 
     @Override
-    public void setCustomName(org.bukkit.entity.Entity entity, Object component) {
+    public void setCustomName(org.bukkit.entity.Entity entity, Object component, String string) {
         getHandle(entity).setCustomName((Component) component);
     }
 
@@ -1511,7 +1533,7 @@ public class NMSImpl implements NMSBridge {
         if (ENTITY_REGISTRY == null)
             return;
         try {
-            ENTITY_REGISTRY_SETTER.invoke(null, ENTITY_REGISTRY.getWrapped());
+            ENTITY_REGISTRY_SETTER.invoke(null, ENTITY_REGISTRY.get());
         } catch (Throwable e) {
         }
     }
@@ -2334,6 +2356,7 @@ public class NMSImpl implements NMSBridge {
     }
 
     private static final MethodHandle ADVANCEMENTS_PLAYER_FIELD = NMS.getFinalSetter(ServerPlayer.class, "cq");
+
     private static final Set<EntityType> BAD_CONTROLLER_LOOK = EnumSet.of(EntityType.POLAR_BEAR, EntityType.BEE,
             EntityType.SILVERFISH, EntityType.SHULKER, EntityType.ENDERMITE, EntityType.ENDER_DRAGON, EntityType.BAT,
             EntityType.SLIME, EntityType.DOLPHIN, EntityType.MAGMA_CUBE, EntityType.HORSE, EntityType.GHAST,
@@ -2391,6 +2414,7 @@ public class NMSImpl implements NMSBridge {
     private static final MethodHandle SIZE_FIELD_SETTER = NMS.getFirstSetter(Entity.class, EntityDimensions.class);
     private static Field SKULL_PROFILE_FIELD;
     private static MethodHandle TEAM_FIELD;
+    private static Boolean VIA_ENABLED = null;
 
     static {
         try {

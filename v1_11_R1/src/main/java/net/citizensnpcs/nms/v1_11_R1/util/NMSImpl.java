@@ -186,6 +186,7 @@ import net.citizensnpcs.trait.versioned.LlamaTrait;
 import net.citizensnpcs.trait.versioned.PolarBearTrait;
 import net.citizensnpcs.trait.versioned.ShulkerTrait;
 import net.citizensnpcs.trait.versioned.SnowmanTrait;
+import net.citizensnpcs.trait.versioned.SpellcasterTrait;
 import net.citizensnpcs.util.EmptyChannel;
 import net.citizensnpcs.util.Messages;
 import net.citizensnpcs.util.NMS;
@@ -232,7 +233,6 @@ import net.minecraft.server.v1_11_R1.EntityTypes;
 import net.minecraft.server.v1_11_R1.EntityWither;
 import net.minecraft.server.v1_11_R1.EnumMoveType;
 import net.minecraft.server.v1_11_R1.GenericAttributes;
-import net.minecraft.server.v1_11_R1.IChatBaseComponent;
 import net.minecraft.server.v1_11_R1.IInventory;
 import net.minecraft.server.v1_11_R1.MathHelper;
 import net.minecraft.server.v1_11_R1.MinecraftKey;
@@ -697,6 +697,7 @@ public class NMSImpl implements NMSBridge {
         registerTraitWithCommand(manager, PolarBearTrait.class);
         registerTraitWithCommand(manager, ShulkerTrait.class);
         registerTraitWithCommand(manager, SnowmanTrait.class);
+        registerTraitWithCommand(manager, SpellcasterTrait.class);
     }
 
     private void loadEntityTypes() {
@@ -1101,8 +1102,8 @@ public class NMSImpl implements NMSBridge {
     }
 
     @Override
-    public void setCustomName(org.bukkit.entity.Entity entity, Object component) {
-        getHandle(entity).setCustomName(((IChatBaseComponent) component).getText());
+    public void setCustomName(org.bukkit.entity.Entity entity, Object component, String string) {
+        getHandle(entity).setCustomName(string);
     }
 
     @Override
@@ -1258,7 +1259,7 @@ public class NMSImpl implements NMSBridge {
             return;
         try {
             MethodHandle setter = NMS.getFinalSetter(EntityTypes.class, "b");
-            setter.invoke(ENTITY_REGISTRY.getWrapped());
+            setter.invoke(ENTITY_REGISTRY.get());
         } catch (Throwable e) {
         }
     }
@@ -1267,9 +1268,14 @@ public class NMSImpl implements NMSBridge {
     public void sleep(Player entity, boolean sleep) {
         EntityPlayer player = (EntityPlayer) getHandle(entity);
         if (sleep) {
-            PacketPlayOutBed packet = new PacketPlayOutBed(player,
+            Location loc = player.getBukkitEntity().getLocation();
+            PacketPlayOutBed bed = new PacketPlayOutBed(player,
                     new BlockPosition((int) player.locX, (int) player.locY, (int) player.locZ));
-            sendPacketNearby(entity, entity.getLocation(), packet, 64);
+            for (Player nearby : CitizensAPI.getLocationLookup().getNearbyPlayers(entity.getLocation(), 64)) {
+                nearby.sendBlockChange(loc, Material.BED.getId(), (byte) 11);
+                sendPacket(nearby, bed);
+                nearby.sendBlockChange(loc, 0, (byte) 0);
+            }
         } else {
             PacketPlayOutAnimation packet = new PacketPlayOutAnimation(player, 2);
             sendPacketNearby(entity, entity.getLocation(), packet, 64);

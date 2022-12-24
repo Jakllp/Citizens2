@@ -51,6 +51,7 @@ import com.google.common.collect.Lists;
 
 import net.citizensnpcs.Citizens;
 import net.citizensnpcs.Settings.Setting;
+import net.citizensnpcs.StoredShops;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.ai.speech.SpeechContext;
 import net.citizensnpcs.api.ai.tree.StatusMapper;
@@ -146,12 +147,31 @@ import net.citizensnpcs.util.Util;
 public class NPCCommands {
     private final CommandHistory history;
     private final NPCSelector selector;
+    private final StoredShops shops;
     private final NPCRegistry temporaryRegistry;
 
     public NPCCommands(Citizens plugin) {
         selector = plugin.getNPCSelector();
+        shops = plugin.getShops();
         temporaryRegistry = CitizensAPI.createCitizensBackedNPCRegistry(new MemoryNPCDataStore());
         history = new CommandHistory(selector);
+    }
+
+    @Command(
+            aliases = { "npc" },
+            usage = "activationrange [range]",
+            desc = "Sets the activation range",
+            modifiers = { "activationrange" },
+            min = 1,
+            max = 2,
+            permission = "citizens.npc.activationrange")
+    public void activationrange(CommandContext args, CommandSender sender, NPC npc, @Arg(1) Integer range) {
+        if (range == null) {
+            npc.data().remove(NPC.Metadata.ACTIVATION_RANGE);
+        } else {
+            npc.data().setPersistent(NPC.Metadata.ACTIVATION_RANGE, range);
+        }
+        Messaging.sendTr(sender, Messages.ACTIVATION_RANGE_SET, range);
     }
 
     @Command(
@@ -563,10 +583,10 @@ public class NPCCommands {
     public void copy(CommandContext args, CommandSender sender, NPC npc, @Flag("name") String name)
             throws CommandException {
         if (name == null) {
-            name = npc.getFullName();
+            name = npc.getRawName();
         }
         NPC copy = npc.clone();
-        if (!copy.getFullName().equals(name)) {
+        if (!copy.getRawName().equals(name)) {
             copy.setName(name);
         }
 
@@ -2308,30 +2328,36 @@ public class NPCCommands {
             min = 1,
             max = 3,
             permission = "citizens.npc.shop")
+    @Requirements(selected = false, ownership = true)
     public void shop(CommandContext args, Player sender, NPC npc,
             @Arg(value = 1, completions = { "edit", "show", "delete" }) String action) throws CommandException {
-        ShopTrait trait = npc.getOrAddTrait(ShopTrait.class);
-        NPCShop shop = trait.getDefaultShop();
-        if (args.argsLength() > 1) {
-            if (args.argsLength() == 3) {
-                if (action.equalsIgnoreCase("edit")
-                        && !sender.hasPermission("citizens.npc.shop.edit." + args.getString(2).toLowerCase()))
-                    throw new NoPermissionsException();
-                shop = trait.getShop(args.getString(2).toLowerCase());
+        if (args.argsLength() == 1) {
+            if (npc != null) {
+                npc.getOrAddTrait(ShopTrait.class).getDefaultShop().display(sender);
             }
-            if (action.equalsIgnoreCase("edit")) {
-                if (!sender.hasPermission("citizens.npc.shop.edit"))
-                    throw new NoPermissionsException();
-                shop.displayEditor(trait, sender);
-            } else if (action.equalsIgnoreCase("show")) {
-                shop.display(sender);
-            } else if (action.equalsIgnoreCase("delete")) {
-                trait.deleteShop(args.getString(2));
-            } else {
+            return;
+        }
+        NPCShop shop = npc != null ? npc.getOrAddTrait(ShopTrait.class).getDefaultShop() : null;
+        if (args.argsLength() == 3) {
+            shop = shops.getShop(args.getString(2).toLowerCase());
+        }
+        if (action.equalsIgnoreCase("delete")) {
+            if (args.argsLength() != 3)
                 throw new CommandUsageException();
-            }
-        } else {
+            shops.deleteShop(args.getString(2).toLowerCase());
+            return;
+        }
+        if (shop == null)
+            throw new CommandUsageException();
+        if (action.equalsIgnoreCase("edit")) {
+            if (!sender.hasPermission("citizens.admin") && (!sender.hasPermission("citizens.npc.shop.edit")
+                    || !sender.hasPermission("citizens.npc.shop.edit." + shop.getName())))
+                throw new NoPermissionsException();
+            shop.displayEditor(npc == null ? null : npc.getOrAddTrait(ShopTrait.class), sender);
+        } else if (action.equalsIgnoreCase("show")) {
             shop.display(sender);
+        } else {
+            throw new CommandUsageException();
         }
     }
 
@@ -2849,6 +2875,23 @@ public class NPCCommands {
             throw new CommandException(Messages.TO_ENTITY_NOT_FOUND);
         from.teleport(to);
         Messaging.sendTr(sender, Messages.TPTO_SUCCESS);
+    }
+
+    @Command(
+            aliases = { "npc" },
+            usage = "trackingrange [range]",
+            desc = "Sets the tracking range",
+            modifiers = { "trackingrange" },
+            min = 1,
+            max = 2,
+            permission = "citizens.npc.trackingrange")
+    public void trackingrange(CommandContext args, CommandSender sender, NPC npc, @Arg(1) Integer range) {
+        if (range == null) {
+            npc.data().remove(NPC.Metadata.TRACKING_RANGE);
+        } else {
+            npc.data().setPersistent(NPC.Metadata.TRACKING_RANGE, range);
+        }
+        Messaging.sendTr(sender, Messages.TRACKING_RANGE_SET, range);
     }
 
     @Command(

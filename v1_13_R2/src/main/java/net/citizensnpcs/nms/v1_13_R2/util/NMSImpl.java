@@ -202,6 +202,7 @@ import net.citizensnpcs.trait.versioned.PolarBearTrait;
 import net.citizensnpcs.trait.versioned.PufferFishTrait;
 import net.citizensnpcs.trait.versioned.ShulkerTrait;
 import net.citizensnpcs.trait.versioned.SnowmanTrait;
+import net.citizensnpcs.trait.versioned.SpellcasterTrait;
 import net.citizensnpcs.trait.versioned.TropicalFishTrait;
 import net.citizensnpcs.util.EmptyChannel;
 import net.citizensnpcs.util.Messages;
@@ -726,6 +727,7 @@ public class NMSImpl implements NMSBridge {
         registerTraitWithCommand(manager, PolarBearTrait.class);
         registerTraitWithCommand(manager, PufferFishTrait.class);
         registerTraitWithCommand(manager, ShulkerTrait.class);
+        registerTraitWithCommand(manager, SpellcasterTrait.class);
         registerTraitWithCommand(manager, SnowmanTrait.class);
         registerTraitWithCommand(manager, TropicalFishTrait.class);
     }
@@ -1147,7 +1149,7 @@ public class NMSImpl implements NMSBridge {
     }
 
     @Override
-    public void setCustomName(org.bukkit.entity.Entity entity, Object component) {
+    public void setCustomName(org.bukkit.entity.Entity entity, Object component, String string) {
         getHandle(entity).setCustomName((IChatBaseComponent) component);
     }
 
@@ -1307,7 +1309,7 @@ public class NMSImpl implements NMSBridge {
             field = NMS.getFinalSetter(IRegistry.class, "ENTITY_TYPE", false);
         }
         try {
-            field.invoke(ENTITY_REGISTRY.getWrapped());
+            field.invoke(ENTITY_REGISTRY.get());
         } catch (Throwable e) {
         }
     }
@@ -1316,9 +1318,14 @@ public class NMSImpl implements NMSBridge {
     public void sleep(Player entity, boolean sleep) {
         EntityPlayer player = (EntityPlayer) getHandle(entity);
         if (sleep) {
-            PacketPlayOutBed packet = new PacketPlayOutBed(player,
+            Location loc = player.getBukkitEntity().getLocation();
+            PacketPlayOutBed bed = new PacketPlayOutBed(player,
                     new BlockPosition((int) player.locX, (int) player.locY, (int) player.locZ));
-            sendPacketNearby(entity, entity.getLocation(), packet, 64);
+            for (Player nearby : CitizensAPI.getLocationLookup().getNearbyPlayers(entity.getLocation(), 64)) {
+                nearby.sendBlockChange(loc, Material.BLACK_BED, (byte) 11);
+                sendPacket(nearby, bed);
+                nearby.sendBlockChange(loc, Material.AIR, (byte) 0);
+            }
         } else {
             PacketPlayOutAnimation packet = new PacketPlayOutAnimation(player, 2);
             sendPacketNearby(entity, entity.getLocation(), packet, 64);

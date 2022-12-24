@@ -73,6 +73,7 @@ public class ScoreboardTrait extends Trait {
 
     @Override
     public void onDespawn() {
+        previousGlowingColor = null;
         if (npc.getEntity() == null)
             return;
         String name = npc.getEntity() instanceof Player ? npc.getEntity().getName() : npc.getUniqueId().toString();
@@ -183,11 +184,6 @@ public class ScoreboardTrait extends Trait {
             NMS.setTeamNameTagVisible(team, nameVisibility);
         }
 
-        if (npc.data().has(NPC.GLOWING_COLOR_METADATA)) {
-            color = ChatColor.valueOf(npc.data().get(NPC.GLOWING_COLOR_METADATA));
-            npc.data().remove(NPC.GLOWING_COLOR_METADATA);
-        }
-
         if (color != null) {
             if (SUPPORT_GLOWING_COLOR && Util.getMinecraftRevision().contains("1_12_R1")) {
                 SUPPORT_GLOWING_COLOR = false;
@@ -201,6 +197,7 @@ public class ScoreboardTrait extends Trait {
                         changed = true;
                     }
                 } catch (NoSuchMethodError err) {
+                    err.printStackTrace();
                     SUPPORT_GLOWING_COLOR = false;
                 }
             } else {
